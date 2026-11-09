@@ -1,0 +1,206 @@
+import { z } from "zod";
+
+import { buildingCategoryIds } from "@/config/categories";
+
+export const buildingCategoryIdSchema = z.enum(buildingCategoryIds);
+
+const allowedLatinTerms = new Set(["AI", "UV", "cm", "mm", "m"]);
+const koreanText = (maxLength: number) => z.string().trim().min(1).max(maxLength).refine(
+  (value) => /[가-힣]/.test(value) && (value.match(/[A-Za-z]+/g) ?? []).every(term => allowedLatinTerms.has(term)),
+  "설명은 한국어로 작성해야 합니다. 영문 표기는 AI, UV와 길이·면적 단위만 허용합니다.",
+);
+const limitedKoreanText = koreanText(240);
+const shortTextArray = z.array(limitedKoreanText).max(8);
+const confidenceSchema = z.number().int().min(0).max(100);
+
+export const buildingAnalysisSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    isRelevantPhoto: z.boolean(),
+    imageQuality: z.enum(["good", "usable", "poor"]),
+    imageQualityReason: limitedKoreanText,
+    primaryCategory: buildingCategoryIdSchema,
+    secondaryCategories: z
+      .array(
+        z.object({
+          category: buildingCategoryIdSchema,
+          confidence: confidenceSchema,
+        }),
+      )
+      .max(3),
+    classificationConfidence: confidenceSchema,
+    classificationReason: limitedKoreanText,
+    buildingUse: limitedKoreanText,
+    windowSize: z.enum(["small", "medium", "large", "mixed", "unknown"]),
+    glassReflectivity: z.enum(["low", "medium", "high", "unknown"]),
+    nearbyVegetation: z.enum(["none", "some", "dense", "unknown"]),
+    skyReflection: z.enum(["low", "medium", "high", "unknown"]),
+    estimatedFloorCount: z
+      .object({
+        min: z.number().int().min(0).nullable(),
+        max: z.number().int().min(0).nullable(),
+        explanation: limitedKoreanText,
+      })
+      .superRefine((value, context) => {
+        if (value.min !== null && value.max !== null && value.max < value.min) {
+          context.addIssue({
+            code: "custom",
+            message: "estimatedFloorCount.max must be greater than or equal to min",
+            path: ["max"],
+          });
+        }
+      }),
+    birdCollisionRisk: z.enum([
+      "low",
+      "medium",
+      "high",
+      "critical",
+      "unknown",
+    ]),
+    riskFactors: shortTextArray,
+    environmentTags: z.array(koreanText(40)).max(8),
+    analyzedEvidence: shortTextArray,
+    designConsiderations: shortTextArray,
+    glassRegions: z
+      .array(
+        z.object({
+          label: koreanText(80),
+          confidence: confidenceSchema,
+          polygon: z
+            .array(z.tuple([z.number().min(0).max(1000), z.number().min(0).max(1000)]))
+            .min(3)
+            .max(40),
+        }),
+      )
+      .max(30),
+    caution: koreanText(320),
+  })
+  .superRefine((value, context) => {
+    const secondaryIds = value.secondaryCategories.map((item) => item.category);
+    if (secondaryIds.includes(value.primaryCategory)) {
+      context.addIssue({
+        code: "custom",
+        message: "primaryCategory must not be repeated in secondaryCategories",
+        path: ["secondaryCategories"],
+      });
+    }
+
+    if (new Set(secondaryIds).size !== secondaryIds.length) {
+      context.addIssue({
+        code: "custom",
+        message: "secondaryCategories must not contain duplicates",
+        path: ["secondaryCategories"],
+      });
+    }
+  });
+
+export type BuildingAnalysisInput = z.infer<typeof buildingAnalysisSchema>;
+
+const koreanJsonText = {
+  type: "string",
+  description: "사용자에게 표시할 한국어 설명. 영어 문장이나 영어 단어를 병기하지 않는다. AI, UV 및 cm, mm, m 단위는 한국어 설명 안에서 사용할 수 있다.",
+} as const;
+
+export const geminiAnalysisJsonSchema = {
+  type: "object",
+  required: [
+    "schemaVersion",
+    "isRelevantPhoto",
+    "imageQuality",
+    "imageQualityReason",
+    "primaryCategory",
+    "secondaryCategories",
+    "classificationConfidence",
+    "classificationReason",
+    "buildingUse",
+    "windowSize",
+    "glassReflectivity",
+    "nearbyVegetation",
+    "skyReflection",
+    "estimatedFloorCount",
+    "birdCollisionRisk",
+    "riskFactors",
+    "environmentTags",
+    "analyzedEvidence",
+    "designConsiderations",
+    "glassRegions",
+    "caution",
+  ],
+  properties: {
+    schemaVersion: { type: "number" },
+    isRelevantPhoto: { type: "boolean" },
+    imageQuality: { type: "string", enum: ["good", "usable", "poor"] },
+    imageQualityReason: koreanJsonText,
+    primaryCategory: {
+      type: "string",
+      enum: [...buildingCategoryIds],
+    },
+    secondaryCategories: {
+      type: "array",
+      maxItems: "3",
+      items: {
+        type: "object",
+        required: ["category", "confidence"],
+        properties: {
+          category: { type: "string", enum: [...buildingCategoryIds] },
+          confidence: { type: "number" },
+        },
+      },
+    },
+    classificationConfidence: { type: "number" },
+    classificationReason: koreanJsonText,
+    buildingUse: { ...koreanJsonText, description: "건물 용도를 한국어로 작성한다. 예: 주거용 건물로 추정, 교육 시설, 용도 확인 어려움. Residential 같은 영어 용도명을 쓰지 않는다." },
+    windowSize: {
+      type: "string",
+      enum: ["small", "medium", "large", "mixed", "unknown"],
+    },
+    glassReflectivity: {
+      type: "string",
+      enum: ["low", "medium", "high", "unknown"],
+    },
+    nearbyVegetation: {
+      type: "string",
+      enum: ["none", "some", "dense", "unknown"],
+    },
+    skyReflection: {
+      type: "string",
+      enum: ["low", "medium", "high", "unknown"],
+    },
+    estimatedFloorCount: {
+      type: "object",
+      required: ["min", "max", "explanation"],
+      properties: {
+        min: { type: "number", nullable: true },
+        max: { type: "number", nullable: true },
+        explanation: koreanJsonText,
+      },
+    },
+    birdCollisionRisk: {
+      type: "string",
+      enum: ["low", "medium", "high", "critical", "unknown"],
+    },
+    riskFactors: { type: "array", items: koreanJsonText },
+    environmentTags: { type: "array", items: koreanJsonText },
+    analyzedEvidence: { type: "array", items: koreanJsonText },
+    designConsiderations: { type: "array", items: koreanJsonText },
+    glassRegions: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["label", "confidence", "polygon"],
+        properties: {
+          label: koreanJsonText,
+          confidence: { type: "number" },
+          polygon: {
+            type: "array",
+            items: {
+              type: "array",
+              items: { type: "number" },
+            },
+          },
+        },
+      },
+    },
+    caution: koreanJsonText,
+  },
+} as const;

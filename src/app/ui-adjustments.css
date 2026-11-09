@@ -1,0 +1,84 @@
+/* ========================================
+   1. 홈 화면의 두 제목: 볼드
+   ======================================== */
+
+.site-shell .hero > .hero-copy > h1,
+.site-shell .hero > .hero-copy > h1 > em,
+.site-shell .why-section > h2 {
+  font-weight: 700;
+}
+
+
+/* ========================================
+   2. 버튼 글씨: 미디엄
+   선택하거나 활성화된 버튼에도 동일하게 적용
+   ======================================== */
+
+.site-shell button,
+.site-shell button.active,
+.site-shell button.selected,
+.site-shell button[aria-pressed="true"],
+.site-shell button[aria-selected="true"] {
+  font-weight: 500;
+}
+
+/* 버튼 내부의 별도 강조 태그도 버튼의 굵기를 따르도록 설정 */
+.site-shell button :is(span, b, strong, small, em) {
+  font-weight: inherit;
+}
+
+
+/* ========================================
+   3. 분석 결과 화면 간격
+   큰 구간 사이: 기존 24px 유지
+   제목과 바로 아래 내용 사이: 10px
+   ======================================== */
+
+.analysis-page {
+  --analysis-block-gap: 24px;
+  --analysis-heading-gap: 10px;
+
+  gap: var(--analysis-block-gap);
+}
+
+/* 제목의 아래쪽 여백이 중복되지 않도록 정리 */
+.analysis-page > .analysis-summary > section > h2 {
+  margin-bottom: 0;
+}
+
+/* 공간 인지 / 착시 환경 분석 / 위험도 진단의 제목 아래 간격 */
+.analysis-page > .analysis-summary > section > h2 + .classification-card,
+.analysis-page > .analysis-summary > section > h2 + .metric-grid,
+.analysis-page > .analysis-summary > section > h2 + .risk-card {
+  margin-top: var(--analysis-heading-gap);
+}
+
+/* '전문 분석 데이터 보기' 제목 */
+.analysis-page > .analysis-summary > details > summary {
+  margin: 0;
+}
+
+/* 펼친 상태: 제목과 상세 분석 목록 사이를 10px로 설정 */
+.analysis-page > .analysis-summary > details > ul {
+  display: grid;
+  gap: 7px;
+
+  margin: var(--analysis-heading-gap) 0 0;
+  padding: 0;
+}
+
+/* 목록 자체의 여백이 제목 아래 간격에 더해지지 않도록 정리 */
+.analysis-page > .analysis-summary > details > ul > li {
+  margin: 0 7px;
+}
+
+/*
+   분석 요약과 바로 다음 '추천 조건 확인' 블록 사이 간격.
+   부모의 기본 간격 24px에서 14px를 줄여 최종 10px로 맞춤.
+   다른 구간의 간격은 그대로 유지.
+*/
+.analysis-page > .analysis-summary + .recommend-box {
+  margin-top: calc(
+    var(--analysis-heading-gap) - var(--analysis-block-gap)
+  );
+}
