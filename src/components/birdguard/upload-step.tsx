@@ -35,29 +35,29 @@ export function UploadStep({
 
   return (
     <section className="upload-section">
-      {/* 탭 진입 후 먼저 나타나는 안내 카드 */}
+      {/* 안내 카드 */}
       <div className="mini-features">
-        <div data-reveal="view">
+        <div>
           <Camera />
           <b>AI 사진 분석</b>
           <span>위험도 진단</span>
         </div>
 
-        <div data-reveal="view">
+        <div>
           <Sparkles />
           <b>맞춤 디자인</b>
           <span>공간별 추천</span>
         </div>
 
-        <div data-reveal="view">
+        <div>
           <ShieldCheck />
           <b>설치 가이드</b>
           <span>기준 확인</span>
         </div>
       </div>
 
-      {/* 스크롤 후 나타나는 사진 등록 영역 */}
-      <div className="upload-content" data-reveal="scroll">
+      {/* 사진 등록 영역 */}
+      <div className="upload-content">
         <div
           className={dragging ? "dropzone dragging" : "dropzone"}
           onDragEnter={(event) => {

@@ -4,7 +4,6 @@ import {
   Bird,
   HomeIcon,
   MapPinned,
-  Menu,
   ScanLine,
   UserRound,
 } from "lucide-react";
@@ -316,14 +315,6 @@ export default function Home() {
             <b>BirdGuard</b>
           </span>
         </button>
-
-        <button
-          className="icon-button"
-          type="button"
-          aria-label="메뉴"
-        >
-          <Menu />
-        </button>
       </header>
 
       <div
@@ -344,8 +335,8 @@ export default function Home() {
               </h1>
 
               <p>
-                건물 사진 한 장으로 위험 요인을 분석하고, 공간에 꼭 맞는
-                충돌 방지 디자인을 제안합니다.
+                건물 사진 한 장으로 위험 요인을 분석하고, <br />
+                공간에 꼭 맞는 충돌 방지 디자인을 제안합니다.
               </p>
 
               <div className="hero-chips">

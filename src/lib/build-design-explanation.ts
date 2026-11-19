@@ -2,7 +2,7 @@ import { getCategoryConfig } from "@/config/categories";
 import { getStickerRule } from "@/config/sticker-rules";
 import type { BuildingAnalysis, BuildingCategoryId } from "@/types/birdguard";
 import type { StickerRecommendation } from "@/lib/recommend-stickers";
-import { designPreviewNotice } from "@/config/sticker-catalog";
+import { designPreviewNotice, stickerColors } from "@/config/sticker-catalog";
 
 export type DesignExplanation = {
   summary: string;
@@ -30,11 +30,24 @@ export function buildDesignExplanation({
   const rule = getStickerRule(selectedCategory);
   const categoryChanged = initialCategory !== selectedCategory;
   if (recommendation) {
+    const dense = recommendation.layout === "dense";
+    const mainColor = stickerColors[recommendation.asset.color];
+    const subColor = stickerColors[recommendation.companion.color];
+    const mainRisks = analysis.riskFactors.slice(0, 3);
     return {
-      summary: `${recommendation.label} · ${recommendation.title}을 선택했습니다.`,
+      summary: `${recommendation.label} 디자인으로 ${recommendation.title} 스티커를 추천해요.`,
       categoryLine: `AI 최초 분류: ${initialConfig.labelKo} / 최종 선택 분류: ${selectedConfig.labelKo}`,
-      reflectedFactors: recommendation.reasons,
-      reason: `마감 제안: ${recommendation.finish}. ${designPreviewNotice}`,
+      reflectedFactors: [
+        ...(mainRisks.length ? [`주요 위험 요인: ${mainRisks.join(", ")}`] : []),
+        `색상: ${mainColor}·${subColor} 조합으로 밝은 배경과 어두운 배경 모두에서 잘 보여요.`,
+        `마감: ${recommendation.finish}`,
+        dense
+          ? "설치 기준: 실측 후 가로·세로 5cm 이내의 강화 배열을 검토해 주세요."
+          : "설치 기준: 실측 후 스티커 사이 빈 공간이 가로 10cm·세로 5cm 이내인지 확인해 주세요.",
+      ],
+      reason: dense
+        ? "유리 반사나 주변 환경 때문에 새가 창을 알아보기 어려운 조건이라, 스티커를 촘촘하게 반복해 배치했어요."
+        : "스티커를 일정한 간격으로 반복 배치해 새가 유리면을 장애물로 알아볼 수 있게 했어요.",
       conceptNote: `디자인 조합: ${recommendation.id}. 제공된 SVG 원본으로 구성한 미리보기입니다.`,
     };
   }

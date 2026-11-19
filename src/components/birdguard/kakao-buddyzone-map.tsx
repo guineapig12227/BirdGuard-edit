@@ -1,12 +1,17 @@
 "use client";
 
-import { ArrowLeft, Check, MapPin, Menu, Search, Star } from "lucide-react";
+import { ArrowLeft, Check, MapPin, Menu, Search, Star, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadBuddyzones, type BuddyzonePlace } from "@/lib/buddyzone-storage";
 import { loadKakaoMaps, type KakaoMap, type KakaoMaps, type KakaoMarker } from "@/lib/kakao-maps";
 
 type Props = { selectedPlace?: BuddyzonePlace; onBack: () => void };
 const categories = ["전체", "카페", "상점", "학교", "공공기관", "기타"];
+const menuItems = [
+  { id: "favorites", label: "즐겨찾기" },
+  { id: "reviews", label: "리뷰" },
+  { id: "report", label: "기술문제 신고" },
+] as const;
 const safe = (value: string) => value.replace(/[<>&"']/g, "");
 const certifiedPlaces: BuddyzonePlace[] = [
   { id: "certified-birdguard-cafe", storeName: "버드가드 카페", address: "서울시 마포구 월드컵로 1길 23", category: "카페", latitude: 37.5564, longitude: 126.9122, createdAt: "2026-08-01T00:00:00.000Z" },
@@ -21,6 +26,8 @@ export function KakaoBuddyzoneMap({ selectedPlace, onBack }: Props) {
   const [focusedPlace, setFocusedPlace] = useState<BuddyzonePlace>(selectedPlace ?? certifiedPlaces[0]);
   const [activeCategory, setActiveCategory] = useState("전체"); const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"loading" | "ready" | "missing" | "error">("loading");
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => { if (!menuOpen) return; const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setMenuOpen(false); }; window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, [menuOpen]);
   useEffect(() => { const stored = loadBuddyzones(); setPlaces([...stored, ...certifiedPlaces]); if (selectedPlace) setFocusedPlace(selectedPlace); loadKakaoMaps().then(sdk => { setMaps(sdk); setStatus("ready"); }).catch(error => setStatus(error instanceof Error && error.message.includes("키") ? "missing" : "error")); }, [selectedPlace]);
   const visiblePlaces = useMemo(() => places.filter(place => (activeCategory === "전체" || place.category === activeCategory) && (!query.trim() || `${place.storeName} ${place.address}`.toLowerCase().includes(query.trim().toLowerCase()))), [activeCategory, places, query]);
 
@@ -40,7 +47,12 @@ export function KakaoBuddyzoneMap({ selectedPlace, onBack }: Props) {
   }, [focusedPlace.id, maps, selectedPlace, visiblePlaces]);
 
   return <section className="buddy-map-page">
-    <div className="registration-title"><button type="button" onClick={onBack} aria-label="등록 화면으로"><ArrowLeft /></button><h1>버디존 지도</h1><button type="button" aria-label="메뉴"><Menu /></button></div>
+    <div className="registration-title"><button type="button" onClick={onBack} aria-label="등록 화면으로"><ArrowLeft /></button><h1>버디존 지도</h1><button type="button" aria-label="메뉴" aria-haspopup="true" aria-expanded={menuOpen} aria-controls="buddy-map-menu" onClick={() => setMenuOpen(true)}><Menu /></button></div>
+    {menuOpen && <div className="buddy-menu-backdrop" onClick={() => setMenuOpen(false)} />}
+    <nav id="buddy-map-menu" className={menuOpen ? "buddy-menu open" : "buddy-menu"} aria-label="버디존 메뉴" aria-hidden={!menuOpen} inert={!menuOpen}>
+      <div className="buddy-menu-head"><b>메뉴</b><button type="button" aria-label="메뉴 닫기" onClick={() => setMenuOpen(false)}><X /></button></div>
+      <ul>{menuItems.map(({ id, label }) => <li key={id}><button type="button" onClick={() => setMenuOpen(false)}><span>{label}</span></button></li>)}</ul>
+    </nav>
     <label className="buddy-map-search"><Search /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="등록된 매장명 또는 주소 검색" aria-label="버디존 검색" /></label>
     <div className="buddy-map-categories">{categories.map(item => <button key={item} className={activeCategory === item ? "active" : ""} onClick={() => setActiveCategory(item)}>{item}</button>)}</div>
     <div className="kakao-map-wrap"><div ref={container} className="kakao-map" aria-label="카카오 버디존 지도" />

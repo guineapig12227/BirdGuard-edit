@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown, RotateCcw, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { AnalysisSummary } from "@/components/birdguard/analysis-summary";
 import { CategorySelect } from "@/components/birdguard/category-select";
@@ -19,6 +19,12 @@ type Tab = "design" | "material" | "estimate";
 
 export function AnalysisStep({ previewUrl, analysis, selectedCategory, preferences, recommendations, selected, isGenerating, onSelectedCategoryChange, onPreferencesChange, onStickerChange, onGenerate }: Props) {
   const [tab, setTab] = useState<Tab>("design");
+  const [page, setPage] = useState<"summary" | "design">("summary");
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  function goTo(next: "summary" | "design") {
+    setPage(next);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
   const fields: Array<{ key: keyof StickerPreferences; label: string; options: Record<string, string> }> = [
     { key: "spaceUse", label: "스티커를 설치할 공간의 용도", options: spaceUses },
     { key: "material", label: "주변 외벽 재질", options: facadeMaterials },
@@ -27,18 +33,10 @@ export function AnalysisStep({ previewUrl, analysis, selectedCategory, preferenc
     { key: "complexity", label: "외벽의 시각적 복잡도", options: visualComplexities },
     { key: "preferredColor", label: "선호 색상", options: { auto: "환경에 맞춰 추천", ...stickerColors } },
   ];
-  return <section className="analysis-page">
-    <div className="page-title"><div><span>인공지능 사진 분석</span><h1>분석 결과</h1></div><button type="button" onClick={() => location.reload()}><RotateCcw /> 다시 분석</button></div>
-    <div className="analysis-photo"><img src={previewUrl} alt="분석한 건물" /><span className="photo-count">1 / 1</span></div>
-    <AnalysisSummary analysis={analysis} />
-    <section className="recommend-box">
-      <div className="recommend-heading"><span><Sparkles /></span><div><small>디자인 선호 조건</small><h2>추천 조건 확인</h2></div></div>
-      <CategorySelect value={selectedCategory} onChange={onSelectedCategoryChange} disabled={isGenerating} />
-      <p className="recommendation-note">공간 용도를 직접 선택하면 건물 분류보다 우선합니다. 사진에서 확인하기 어려운 재질·형태·색상은 아래에서 보완해주세요.</p>
-      <div className="sticker-preferences">{fields.map(field => <label key={field.key}>{field.label}<select disabled={isGenerating} value={preferences[field.key]} onChange={event => onPreferencesChange({ ...preferences, [field.key]: event.target.value })}>{Object.entries(field.options).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>)}</div>
-    </section>
+  if (page === "design") return <section className="analysis-page">
+    <div className="page-title"><div><span>인공지능 사진 분석</span><h1>맞춤 디자인 추천</h1></div><button type="button" onClick={() => goTo("summary")}><ArrowLeft /> 분석 결과</button></div>
     <section className="design-recommendation">
-      <div className="recommend-title"><div><span>2-2</span><div><small>공간 맞춤 제안</small><h2>맞춤 디자인 추천</h2></div></div><p>건물 환경과 공간 용도에 맞춘 세 가지 디자인입니다.</p></div>
+      <div className="recommend-title"><div><div><small>공간 맞춤 제안</small><h2>맞춤 디자인 추천</h2></div></div><p>건물 환경과 공간 용도에 맞춘 세 가지 디자인입니다.</p></div>
       <div className="recommend-tabs" role="tablist" aria-label="디자인 상세">
         {([ ["design", "추천 디자인"], ["material", "마감 제안"], ["estimate", "견적 안내"] ] as const).map(([id, label]) => <button type="button" role="tab" aria-selected={tab === id} key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>{label}</button>)}
       </div>
@@ -57,5 +55,21 @@ export function AnalysisStep({ previewUrl, analysis, selectedCategory, preferenc
       {tab === "estimate" && <div className="tab-panel" role="tabpanel"><div className="estimate-card"><div><span>선택 디자인</span><b>{selected.label} · {selected.title}</b></div><div><span>마감 제안</span><b>{selected.finish}</b></div><div><span>배치 상태</span><b>실측 전 디자인 미리보기</b></div><p>정확한 간격·수량·비용은 유리 가로·세로와 창 개수를 실측한 뒤 산정할 수 있습니다. 현재는 디자인 미리보기만 제공합니다.</p></div></div>}
     </section>
     <button type="button" className="primary-button sticky-action" disabled={isGenerating} onClick={onGenerate}>이 디자인 선택하기 <ArrowRight /></button>
+  </section>;
+
+  return <section className="analysis-page">
+    <div className="page-title"><div><span>인공지능 사진 분석</span><h1>분석 결과</h1></div><button type="button" onClick={() => location.reload()}><RotateCcw /> 다시 분석</button></div>
+    <div className="analysis-photo"><img src={previewUrl} alt="분석한 건물" /><span className="photo-count">1 / 1</span></div>
+    <AnalysisSummary analysis={analysis} />
+    <div className="evidence-toggle">
+      <button type="button" aria-expanded={evidenceOpen} aria-controls="recommend-conditions" onClick={() => setEvidenceOpen(open => !open)}>전문 분석 데이터 보기 <ChevronDown className={evidenceOpen ? "evidence-chevron open" : "evidence-chevron"} /></button>
+    </div>
+    {evidenceOpen && <section className="recommend-box" id="recommend-conditions">
+      <div className="recommend-heading"><span><Sparkles /></span><div><small>디자인 선호 조건</small><h2>추천 조건 확인</h2></div></div>
+      <CategorySelect value={selectedCategory} onChange={onSelectedCategoryChange} disabled={isGenerating} />
+      <p className="recommendation-note">공간 용도를 직접 선택하면 건물 분류보다 우선합니다. 사진에서 확인하기 어려운 재질·형태·색상은 아래에서 보완해주세요.</p>
+      <div className="sticker-preferences">{fields.map(field => <label key={field.key}>{field.label}<select disabled={isGenerating} value={preferences[field.key]} onChange={event => onPreferencesChange({ ...preferences, [field.key]: event.target.value })}>{Object.entries(field.options).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>)}</div>
+    </section>}
+    <button type="button" className="primary-button" onClick={() => goTo("design")}>맞춤 디자인 추천 <ArrowRight /></button>
   </section>;
 }

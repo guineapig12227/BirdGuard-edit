@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import "@/app/globals.css";
 import "@/app/ui-adjustments.css";
+import { OfflineLoadingScreen } from "@/components/birdguard/loading-screen";
 
 export const metadata: Metadata = {
   title: "버드가드 BirdGuard",
@@ -15,7 +16,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        {children}
+        <OfflineLoadingScreen />
+      </body>
     </html>
   );
 }

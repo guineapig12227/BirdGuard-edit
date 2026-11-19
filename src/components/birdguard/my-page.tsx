@@ -33,7 +33,7 @@ export function MyPage({ onAnalyze }: Props) {
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   // 실제 회원 정보 연동 전 사용하는 체험용 프로필입니다.
-  const nickname = "버디";
+  const nickname = "직구";
 
   function changeTab(id: TabId) {
     setActiveTab(id);
